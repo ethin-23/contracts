@@ -14,11 +14,6 @@ struct Job {
 }
 
 #[starknet::interface]
-trait IERC20<T> { // Get from openzeppelin
-}
-
-
-#[starknet::interface]
 trait ITxnJobs<T> {
     // Returns the current balance.
     fn get_transfer_jobs(self: @T) -> Span<Job>;
@@ -31,7 +26,7 @@ mod balance {
     use openzeppelin::token::erc20::interface::IERC20;
     use traits::Into;
     use super::{Job, JobStatus,};
-    use starknet::ContractAddress;
+    use starknet::{ContractAddress, ClassHash, syscalls, get_caller_address};
     use openzeppelin::token::erc20::ERC20Component;
     // use starknet::block_timestamp;
 
@@ -50,6 +45,7 @@ mod balance {
         jobs: LegacyMap<u64, Job>,
         total_jobs: u64,
         processed_jobs: u64,
+        admin: ContractAddress
     }
 
     #[event]
@@ -60,18 +56,24 @@ mod balance {
     }
 
     #[constructor]
-    fn constructor(ref self: ContractState, supply: u256, recipient: ContractAddress) {
-        let name = 'PrivateToken';
-        let symbol = 'PRIV';
-
+    fn constructor(
+        ref self: ContractState,
+        name: felt252,
+        symbol: felt252,
+        supply: u256,
+        admin: ContractAddress
+    ) {
         self.erc20.initializer(name, symbol);
-        self.erc20._mint(recipient, supply);
+        self.admin.write(admin);
+        self.erc20._mint(admin, supply);
         self.total_jobs.write(0);
         self.processed_jobs.write(0);
     }
 
-
-    impl ERC20 of super::IERC20<ContractState> {}
+    fn replace_class(ref self: ContractState, class_hash: ClassHash) {
+        assert(get_caller_address() == self.admin.read(), 'only admin');
+        syscalls::replace_class_syscall(class_hash);
+    }
 
     #[abi(embed_v0)]
     impl TxnJobs of super::ITxnJobs<ContractState> {
@@ -90,11 +92,7 @@ mod balance {
                     }
                     i += 1;
                 }
-            // TODO
-
-            // self.processed_jobs += 1;
             };
-            // Gets jobs and add to array
             jobs.span()
         }
         fn create_transfer_job(
