@@ -14,7 +14,7 @@ struct Job {
 }
 
 #[starknet::interface]
-trait IERC20<T> {// Get from openzeppelin
+trait IERC20<T> { // Get from openzeppelin
 }
 
 
@@ -25,12 +25,11 @@ trait ITxnJobs<T> {
     // Increases the balance by the given amount.
     fn increase(ref self: T, a: u128);
     // Just a test, remove afterwards
-    fn get_owner(self: @T) -> felt252 ;
-
+    fn get_owner(self: @T) -> felt252;
 }
 
 #[starknet::contract]
-mod Balance {
+mod balance {
     use traits::Into;
     use super::Job;
     use starknet::ContractAddress;
@@ -58,12 +57,12 @@ mod Balance {
     }
 
     #[constructor]
-    fn constructor(ref self: ContractState, initial_supply: u256, recipient: ContractAddress) {
+    fn constructor(ref self: ContractState, supply: u256, recipient: ContractAddress) {
         let name = 'PrivateToken';
         let symbol = 'PRIV';
 
         self.erc20.initializer(name, symbol);
-        self.erc20._mint(recipient, initial_supply);
+        self.erc20._mint(recipient, supply);
     }
 
     fn add_job() {}
