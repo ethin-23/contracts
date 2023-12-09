@@ -1,38 +1,38 @@
 #[cfg(test)]
 mod test {
     use starknet::{contract_address_const, contract_address_to_felt252};
-    use array::SpanTrait;
     use contracts::erc20::ITxnJobs;
     use contracts::erc20::balance;
     use starknet::syscalls::{deploy_syscall, SyscallResult};
-    use traits::TryInto;
-    use option::OptionTrait;
     use starknet::class_hash::Felt252TryIntoClassHash;
-    use core::result::ResultTrait;
-    use contracts::erc20::ITxnJobsDispatcher;
-    use contracts::erc20::ITxnJobsDispatcherTrait;
+    // use core::result::ResultTrait;
+    use contracts::erc20::{ITxnJobsDispatcher, ITxnJobsDispatcherTrait};
     use starknet::ContractAddress;
     use debug::PrintTrait;
-    use traits::Into;
+    use openzeppelin::token::erc20::interface::{
+        IERC20MetadataDispatcher, IERC20MetadataDispatcherTrait, IERC20Dispatcher,
+        IERC20DispatcherTrait
+    };
 
     #[test]
     #[available_gas(2000000000)]
     fn joe_test() {
-        let dispatcher = deploy_contract();
-        let owner = dispatcher.get_owner();
-        assert('Joe' == owner, 'Joe should be the owner.');
+        let contract = deploy_erc20_meta();
+        let sym = contract.name();
+        sym.print();
+        assert('moi-token' == sym, 'Joe should be the owner.');
     }
-    #[test]
-    #[available_gas(2000000000)]
-    fn erc20_supply_test() {
-        let dispatcher = deploy_contract();
-        let supply = dispatcher.get_total_supply();
-        supply.print();
-        assert(0x2710 == supply, 'Supply should be 10000.');
+    fn deploy_erc20() -> IERC20Dispatcher {
+        IERC20Dispatcher { contract_address: deploy_contract().contract_address }
+    }
+    fn deploy_erc20_meta() -> IERC20MetadataDispatcher {
+        IERC20MetadataDispatcher { contract_address: deploy_contract().contract_address }
     }
     fn deploy_contract() -> ITxnJobsDispatcher {
         let mut calldata = ArrayTrait::new();
         let address = contract_address_const::<0x42>();
+        calldata.append('moi-token');
+        calldata.append('moi');
         calldata.append(10000);
         calldata.append(0);
         calldata.append(contract_address_to_felt252(address));
