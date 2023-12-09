@@ -1,10 +1,10 @@
 use starknet::{contract_address_const, contract_address_to_felt252};
-use contracts::erc20::ITxnJobs;
-use contracts::erc20::balance;
+use contracts::token::ITxnJobs;
+use contracts::token::balance;
 use starknet::syscalls::{deploy_syscall, SyscallResult};
 use starknet::class_hash::Felt252TryIntoClassHash;
 // use core::result::ResultTrait;
-use contracts::erc20::{ITxnJobsDispatcher, ITxnJobsDispatcherTrait};
+use contracts::token::{ITxnJobsDispatcher, ITxnJobsDispatcherTrait};
 use starknet::ContractAddress;
 use debug::PrintTrait;
 use openzeppelin::token::erc20::interface::{
@@ -19,9 +19,6 @@ fn joe_test() {
     sym.print();
     assert('moi-token' == sym, 'Joe should be the owner.');
 }
-fn deploy_erc20() -> IERC20Dispatcher {
-    IERC20Dispatcher { contract_address: deploy_contract().contract_address }
-}
 fn deploy_erc20_meta() -> IERC20MetadataDispatcher {
     IERC20MetadataDispatcher { contract_address: deploy_contract().contract_address }
 }
@@ -30,8 +27,6 @@ fn deploy_contract() -> ITxnJobsDispatcher {
     let address = contract_address_const::<0x42>();
     calldata.append('moi-token');
     calldata.append('moi');
-    calldata.append(10000);
-    calldata.append(0);
     calldata.append(contract_address_to_felt252(address));
     let address0: ContractAddress =
         match deploy_syscall(

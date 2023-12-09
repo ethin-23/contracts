@@ -1,4 +1,4 @@
-mod private_txn;
+mod token;
 
 #[cfg(test)]
 mod test;
