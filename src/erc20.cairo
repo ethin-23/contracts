@@ -23,11 +23,6 @@ trait ITxnJobs<T> {
     // Returns the current balance.
     fn get_transfer_jobs(self: @T) -> Span<Job>;
     // Increases the balance by the given amount.
-    fn increase(ref self: T, a: u128);
-    // Just a test, remove afterwards
-    fn get_owner(self: @T) -> felt252;
-    // Just a test, remove afterwards
-    fn get_total_supply(self: @T) -> u256;
     fn create_transfer_job(ref self: T, amount: u128, recipient: (u128, u128, u64));
 }
 
@@ -93,7 +88,7 @@ mod balance {
                     if job.status == JobStatus::Pending {
                         jobs.append(job);
                     }
-                    i -= 1;
+                    i += 1;
                 }
             // TODO
 
@@ -101,15 +96,6 @@ mod balance {
             };
             // Gets jobs and add to array
             jobs.span()
-        }
-        fn increase(ref self: ContractState, mut a: u128) {
-            a += 1;
-        }
-        fn get_owner(self: @ContractState) -> felt252 {
-            return 'Joe';
-        }
-        fn get_total_supply(self: @ContractState) -> u256 {
-            return self.erc20.total_supply();
         }
         fn create_transfer_job(
             ref self: ContractState, amount: u128, recipient: (u128, u128, u64)
