@@ -134,7 +134,7 @@ mod balance {
                 }
                 let job_id = *job_ids.at(i);
                 let job = self.jobs.read(job_id);
-                process_job(job_id, job);
+                process_job(ref self, job_id, job);
                 i += 1;
             };
         }
@@ -154,9 +154,31 @@ mod balance {
         }
     }
 
-    fn process_job(job_id: u64, job: Job) {
+    fn to_256(low: u128) -> u256 {
+        u256 { low, high: 0 }
+    }
+
+    fn process_job(ref self: ContractState, job_id: u64, mut job: Job) {
         if job.status == JobStatus::Pending {
-            job.amount;
+            let amount = job.amount;
+
+            let mut sender_bal = self.balances.read(job.sender);
+            let mut recepient_bal = self.balances.read(job.recipient);
+
+            let (n, g) = self.he_vars.read();
+            let n2 = n * n;
+
+            // Paillier subtraction
+            sender_bal = sender_bal / to_256(amount) % n2;
+            self.balances.write(job.sender, sender_bal);
+
+            // Paillier addition
+            recepient_bal = recepient_bal * to_256(amount) % n2;
+            self.balances.write(job.recipient, recepient_bal);
+
+            // Update the job status
+            job.status = JobStatus::Success;
+            self.jobs.write(job_id, job);
         // @TODO
         }
     }
