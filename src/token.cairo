@@ -1,6 +1,7 @@
 use starknet::{ClassHash, ContractAddress};
 // type ContractAddressEnc = (u256, u256, u128);
 type ContractAddressEnc = ContractAddress;
+use openzeppelin::token::erc20::interface;
 
 #[derive(Serde, Copy, Drop, starknet::Store, Hash, PartialEq)]
 enum JobStatus {
@@ -15,11 +16,13 @@ struct Job {
     sender: ContractAddressEnc,
     recipient: ContractAddressEnc,
     timestamp: u64,
-    status: JobStatus
+    status: JobStatus,
 }
 
 #[starknet::interface]
 trait ITxnJobs<T> {
+    fn mint(ref self: T, addr: ContractAddress, amt: u256);
+    fn he_vars(ref self: T, n: u256, g: u256);
     fn balance_of(self: @T, addr: ContractAddress) -> u256;
     fn replace_class(ref self: T, class_hash: ClassHash); // Returns the current balance.
     fn get_transfer_jobs(self: @T) -> Span<Job>;
@@ -30,7 +33,8 @@ trait ITxnJobs<T> {
 
 #[starknet::contract]
 mod balance {
-    use openzeppelin::token::erc20::interface::IERC20;
+    use openzeppelin::token::erc20::interface;
+    use openzeppelin::token::erc20::interface::{IERC20, IERC20Metadata};
     use traits::Into;
     use super::{Job, JobStatus, ContractAddressEnc};
     use starknet::{ContractAddress, ClassHash, syscalls, get_caller_address};
@@ -40,8 +44,18 @@ mod balance {
 
     component!(path: ERC20Component, storage: erc20, event: ERC20Event);
 
-    #[abi(embed_v0)]
-    impl ERC20MetadataImpl = ERC20Component::ERC20MetadataImpl<ContractState>;
+    #[external(v0)]
+    impl ERC20MetadataImpl of IERC20Metadata<ContractState> {
+        fn name(self: @ContractState) -> felt252 {
+            self.erc20.name()
+        }
+        fn symbol(self: @ContractState) -> felt252 {
+            self.erc20.symbol()
+        }
+        fn decimals(self: @ContractState) -> u8 {
+            4
+        }
+    }
 
     #[storage]
     struct Storage {
@@ -52,6 +66,7 @@ mod balance {
         processed_jobs: u64,
         admin: ContractAddress,
         balances: LegacyMap<ContractAddressEnc, u256>,
+        he_vars: (u256, u256),
     }
 
     #[event]
@@ -74,6 +89,17 @@ mod balance {
 
     #[abi(embed_v0)]
     impl TxnJobs of super::ITxnJobs<ContractState> {
+        fn he_vars(ref self: ContractState, n: u256, g: u256) {
+            self.he_vars.write((n, g));
+        }
+
+        fn mint(ref self: ContractState, addr: ContractAddress, amt: u256) {
+            assert(get_caller_address() == self.admin.read(), 'only admin');
+            let (n, g) = self.he_vars.read();
+            // @TODO
+            addr;
+        }
+
         fn replace_class(ref self: ContractState, class_hash: ClassHash) {
             assert(get_caller_address() == self.admin.read(), 'only admin');
             syscalls::replace_class_syscall(class_hash);
@@ -115,17 +141,23 @@ mod balance {
         fn create_transfer_job(
             ref self: ContractState, amount: u128, recipient: ContractAddressEnc
         ) {
-            let job = Job { amount, recipient, timestamp: 0, status: JobStatus::Pending };
+            let job = Job {
+                amount,
+                sender: get_caller_address(),
+                recipient,
+                timestamp: 0,
+                status: JobStatus::Pending
+            };
             let total_jobs: u64 = self.total_jobs.read();
             self.total_jobs.write(total_jobs + 1);
             self.jobs.write(total_jobs, job);
-        // Add job to array
         }
     }
 
     fn process_job(job_id: u64, job: Job) {
-        if job.status == JobStatus::Pending { //
-            job.amount
+        if job.status == JobStatus::Pending {
+            job.amount;
+        // @TODO
         }
     }
 }
