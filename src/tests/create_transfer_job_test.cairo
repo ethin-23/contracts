@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod test {
+mod tests {
     use starknet::{contract_address_const, contract_address_to_felt252};
     use array::SpanTrait;
     use contracts::erc20::ITxnJobs;
@@ -16,19 +16,12 @@ mod test {
     use traits::Into;
 
     #[test]
-    #[available_gas(2000000000)]
-    fn joe_test() {
+    #[available_gas(2000000)]
+    fn create_transfer_job_test() {
         let dispatcher = deploy_contract();
-        let owner = dispatcher.get_owner();
-        assert('Joe' == owner, 'Joe should be the owner.');
-    }
-    #[test]
-    #[available_gas(2000000000)]
-    fn erc20_supply_test() {
-        let dispatcher = deploy_contract();
-        let supply = dispatcher.get_total_supply();
-        supply.print();
-        assert(0x2710 == supply, 'Supply should be 10000.');
+        dispatcher.create_transfer_job
+        
+        assert(, '');
     }
     fn deploy_contract() -> ITxnJobsDispatcher {
         let mut calldata = ArrayTrait::new();
