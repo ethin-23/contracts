@@ -33,10 +33,9 @@ mod balance {
     component!(path: ERC20Component, storage: erc20, event: ERC20Event);
 
     #[abi(embed_v0)]
-    impl ERC20Impl = ERC20Component::ERC20Impl<ContractState>;
-    #[abi(embed_v0)]
     impl ERC20MetadataImpl = ERC20Component::ERC20MetadataImpl<ContractState>;
-    impl ERC20InternalImpl = ERC20Component::InternalImpl<ContractState>;
+
+    type ContractAddressEnc = (u128, u128, u64);
 
     #[storage]
     struct Storage {
@@ -45,7 +44,8 @@ mod balance {
         jobs: LegacyMap<u64, Job>,
         total_jobs: u64,
         processed_jobs: u64,
-        admin: ContractAddress
+        admin: ContractAddress,
+        balances: LegacyMap<ContractAddressEnc, u256>,
     }
 
     #[event]
@@ -63,9 +63,9 @@ mod balance {
         supply: u256,
         admin: ContractAddress
     ) {
-        self.erc20.initializer(name, symbol);
+        self.erc20.ERC20_name.write(name);
+        self.erc20.ERC20_symbol.write(symbol);
         self.admin.write(admin);
-        self.erc20._mint(admin, supply);
         self.total_jobs.write(0);
         self.processed_jobs.write(0);
     }

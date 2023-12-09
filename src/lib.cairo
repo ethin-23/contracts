@@ -1,7 +1,4 @@
-mod erc20;
+mod private_txn;
 
 #[cfg(test)]
-mod tests {
-    mod basic_test;
-    mod erc20_test;
-}
+mod test;
