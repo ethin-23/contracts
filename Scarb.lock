@@ -6,9 +6,15 @@ name = "contracts"
 version = "0.1.0"
 dependencies = [
  "openzeppelin",
+ "paillier",
 ]
 
 [[package]]
 name = "openzeppelin"
 version = "0.8.0"
 source = "git+https://github.com/OpenZeppelin/cairo-contracts.git?tag=v0.8.0#c23e8e96de60e6e3159b1ff8591a1187269c0eb7"
+
+[[package]]
+name = "paillier"
+version = "0.1.0"
+source = "git+https://github.com/he-cairo/paillier.cairo#bd71b8b0b77cfe135c2f7614bcef1f444077cad3"
