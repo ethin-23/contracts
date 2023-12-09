@@ -26,10 +26,13 @@ trait ITxnJobs<T> {
     fn increase(ref self: T, a: u128);
     // Just a test, remove afterwards
     fn get_owner(self: @T) -> felt252;
+    // Just a test, remove afterwards
+    fn get_total_supply(self: @T) -> u256;
 }
 
 #[starknet::contract]
 mod balance {
+    use openzeppelin::token::erc20::interface::IERC20;
     use traits::Into;
     use super::Job;
     use starknet::ContractAddress;
@@ -84,6 +87,9 @@ mod balance {
         }
         fn get_owner(self: @ContractState) -> felt252 {
             return 'Joe';
+        }
+        fn get_total_supply(self: @ContractState) -> u256 {
+            return self.erc20.total_supply();
         }
     }
 }

@@ -19,8 +19,16 @@ mod test {
     #[available_gas(2000000000)]
     fn joe_test() {
         let dispatcher = deploy_contract();
-        let _owner = dispatcher.get_owner();
-        assert('Joe' == dispatcher.get_owner(), 'Joe should be the owner.');
+        let owner = dispatcher.get_owner();
+        assert('Joe' == owner, 'Joe should be the owner.');
+    }
+    #[test]
+    #[available_gas(2000000000)]
+    fn erc20_supply_test() {
+        let dispatcher = deploy_contract();
+        let supply = dispatcher.get_total_supply();
+        supply.print();
+        assert(002710 == supply, 'Supply should be 10000.');
     }
     fn deploy_contract() -> ITxnJobsDispatcher {
         let mut calldata = ArrayTrait::new();
@@ -28,17 +36,11 @@ mod test {
         calldata.append(0);
         calldata.append(10000);
         calldata.append(contract_address_to_felt252(address));
-
-        'err1'.print();
         let address0: ContractAddress =
             match deploy_syscall(
                 balance::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), false
             ) {
-            Result::Ok((addr, _)) => {
-                'ok'.print();
-                addr.print();
-                addr
-            },
+            Result::Ok((addr, _)) => { addr },
             Result::Err(e) => {
                 'error'.print();
                 e.print();
