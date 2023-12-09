@@ -84,9 +84,9 @@ mod balance {
             let mut jobs = ArrayTrait::new();
             let total_jobs: u64 = self.total_jobs.read();
             let processed_jobs: u64 = self.processed_jobs.read();
-            let mut i = total_jobs - processed_jobs;
+            let mut i = processed_jobs;
             loop {
-                if i == 0 {
+                if i == total_jobs {
                     break;
                 } else {
                     let job = self.jobs.read(i);
