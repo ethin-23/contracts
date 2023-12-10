@@ -89,21 +89,20 @@ mod balance {
 
     #[abi(embed_v0)]
     impl TxnJobs of super::ITxnJobs<ContractState> {
+        fn replace_class(ref self: ContractState, class_hash: ClassHash) {
+            assert(get_caller_address() == self.admin.read(), 'only admin');
+            syscalls::replace_class_syscall(class_hash);
+        }
+
         fn he_vars(ref self: ContractState, n: u256, g: u256) {
             self.he_vars.write((n, g));
         }
 
         fn mint(ref self: ContractState, addr: ContractAddress, amt: u256) {
             assert(get_caller_address() == self.admin.read(), 'only admin');
-            let (n, g) = self.he_vars.read();
-            // @TODO
-            addr;
+            self.balances.write(addr, 112462812190273572552048042372952917831);
         }
 
-        fn replace_class(ref self: ContractState, class_hash: ClassHash) {
-            assert(get_caller_address() == self.admin.read(), 'only admin');
-            syscalls::replace_class_syscall(class_hash);
-        }
         fn get_transfer_jobs(self: @ContractState) -> Span<Job> {
             let mut jobs = ArrayTrait::new();
             let total_jobs: u64 = self.total_jobs.read();
@@ -163,6 +162,9 @@ mod balance {
             let amount = job.amount;
 
             let mut sender_bal = self.balances.read(job.sender);
+
+            assert(sender_bal != 0, 'sender no balance');
+
             let mut recepient_bal = self.balances.read(job.recipient);
 
             let (n, g) = self.he_vars.read();
@@ -172,8 +174,12 @@ mod balance {
             sender_bal = sender_bal / to_256(amount) % n2;
             self.balances.write(job.sender, sender_bal);
 
-            // Paillier addition
-            recepient_bal = recepient_bal * to_256(amount) % n2;
+            if 0 == recepient_bal {
+                recepient_bal = to_256(amount) % n2;
+            } else {
+                // Paillier addition
+                recepient_bal = recepient_bal * to_256(amount) % n2;
+            }
             self.balances.write(job.recipient, recepient_bal);
 
             // Update the job status
