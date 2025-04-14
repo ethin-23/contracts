@@ -4,11 +4,7 @@ type ContractAddressEnc = ContractAddress;
 use openzeppelin::token::erc20::interface;
 
 #[derive(Serde, Copy, Drop, starknet::Store, Hash, PartialEq)]
-enum JobStatus {
-    Pending,
-    Failed,
-    Success,
-}
+type JobStatus = u8;
 
 #[derive(Serde, Copy, Drop, starknet::Store, Hash)]
 struct Job {
@@ -17,15 +13,17 @@ struct Job {
     recipient: ContractAddressEnc,
     timestamp: u64,
     status: JobStatus,
+    id: u64,
 }
 
 #[starknet::interface]
 trait ITxnJobs<T> {
-    fn mint(ref self: T, addr: ContractAddress, amt: u256);
+    fn reset(ref self: T, total_jobs: u64, processed_jobs: u64);
+    fn mint(ref self: T, addr: ContractAddress);
     fn he_vars(ref self: T, n: u256, g: u256);
     fn balance_of(self: @T, addr: ContractAddress) -> u256;
     fn replace_class(ref self: T, class_hash: ClassHash); // Returns the current balance.
-    fn get_transfer_jobs(self: @T) -> Span<Job>;
+    fn get_transfer_jobs(self: @T) -> Span<(u64, Job)>;
     fn process_jobs(ref self: T, job_ids: Array<u64>);
     // Increases the balance by the given amount.
     fn create_transfer_job(ref self: T, amount: u128, recipient: ContractAddressEnc);
@@ -37,7 +35,7 @@ mod balance {
     use openzeppelin::token::erc20::interface::{IERC20, IERC20Metadata};
     use traits::Into;
     use super::{Job, JobStatus, ContractAddressEnc};
-    use starknet::{ContractAddress, ClassHash, syscalls, get_caller_address};
+    use starknet::{ContractAddress, ClassHash, syscalls, info, get_caller_address};
     use openzeppelin::token::erc20::ERC20Component;
 
     // use starknet::block_timestamp;
@@ -83,8 +81,6 @@ mod balance {
         self.erc20.ERC20_name.write(name);
         self.erc20.ERC20_symbol.write(symbol);
         self.admin.write(admin);
-        self.total_jobs.write(0);
-        self.processed_jobs.write(0);
     }
 
     #[abi(embed_v0)]
@@ -95,26 +91,33 @@ mod balance {
         }
 
         fn he_vars(ref self: ContractState, n: u256, g: u256) {
+            assert(get_caller_address() == self.admin.read(), 'only admin');
             self.he_vars.write((n, g));
         }
 
-        fn mint(ref self: ContractState, addr: ContractAddress, amt: u256) {
+        fn reset(ref self: ContractState, total_jobs: u64, processed_jobs: u64) {
+            assert(get_caller_address() == self.admin.read(), 'only admin');
+            self.total_jobs.write(total_jobs);
+            self.processed_jobs.write(processed_jobs);
+        }
+
+        fn mint(ref self: ContractState, addr: ContractAddress) {
             assert(get_caller_address() == self.admin.read(), 'only admin');
             self.balances.write(addr, 112462812190273572552048042372952917831);
         }
 
-        fn get_transfer_jobs(self: @ContractState) -> Span<Job> {
+        fn get_transfer_jobs(self: @ContractState) -> Span<(u64, Job)> {
             let mut jobs = ArrayTrait::new();
             let total_jobs: u64 = self.total_jobs.read();
             let processed_jobs: u64 = self.processed_jobs.read();
             let mut i = processed_jobs;
             loop {
+                let job = self.jobs.read(i);
+                if job.status == 0 {
+                    jobs.append((i, job));
+                }
                 if i == total_jobs {
                     break;
-                }
-                let job = self.jobs.read(i);
-                if job.status == JobStatus::Pending {
-                    jobs.append(job);
                 }
                 i += 1;
             };
@@ -140,16 +143,17 @@ mod balance {
         fn create_transfer_job(
             ref self: ContractState, amount: u128, recipient: ContractAddressEnc
         ) {
+            let id: u64 = self.total_jobs.read();
             let job = Job {
                 amount,
                 sender: get_caller_address(),
                 recipient,
-                timestamp: 0,
-                status: JobStatus::Pending
+                timestamp: info::get_block_timestamp(),
+                status: 0,
+                id
             };
-            let total_jobs: u64 = self.total_jobs.read();
-            self.total_jobs.write(total_jobs + 1);
-            self.jobs.write(total_jobs, job);
+            self.jobs.write(id, job);
+            self.total_jobs.write(id + 1);
         }
     }
 
@@ -158,7 +162,7 @@ mod balance {
     }
 
     fn process_job(ref self: ContractState, job_id: u64, mut job: Job) {
-        if job.status == JobStatus::Pending {
+        if job.status == 0 {
             let amount = job.amount;
 
             let mut sender_bal = self.balances.read(job.sender);
@@ -183,9 +187,9 @@ mod balance {
             self.balances.write(job.recipient, recepient_bal);
 
             // Update the job status
-            job.status = JobStatus::Success;
+            job.status = 1;
+
             self.jobs.write(job_id, job);
-        // @TODO
         }
     }
 }
